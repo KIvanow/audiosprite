@@ -27,7 +27,7 @@ var defaults = {
 
 module.exports = function(files) {
   var opts = {}, callback = function(){}
-
+  var proccess = process.platform == 'linux' ? 'avconv' : 'ffmpeg';
   if (arguments.length == 2) {
     callback = arguments[1]
   } else if (arguments.length >= 3) {
@@ -56,9 +56,9 @@ module.exports = function(files) {
   , spritemap: {}
   }
 
-  spawn('ffmpeg', ['-version']).on('exit', function(code) {
+  spawn(proccess, ['-version']).on('exit', function(code) {
     if (code) {
-      callback(new Error('ffmpeg was not found on your path'))
+      callback(new Error(proccess + ' was not found on your path'))
     }
     if (opts.silence) {
       json.spritemap.silence = {
@@ -100,7 +100,7 @@ module.exports = function(files) {
 
     fs.exists(src, function(exists) {
       if (exists) {
-        var ffmpeg = spawn('ffmpeg', ['-i', path.resolve(src)]
+        var ffmpeg = spawn(proccess, ['-i', path.resolve(src)]
           .concat(wavArgs).concat('pipe:'))
         ffmpeg.stdout.pipe(fs.createWriteStream(dest, {flags: 'w'}))
         ffmpeg.on('exit', function(code, signal) {
@@ -160,7 +160,7 @@ module.exports = function(files) {
 
   function exportFile(src, dest, ext, opt, store, cb) {
     var outfile = dest + '.' + ext
-    spawn('ffmpeg',['-y', '-ar', opts.samplerate, '-ac', opts.channels, '-f', 's16le', '-i', src]
+    spawn(proccess,['-y', '-ar', opts.samplerate, '-ac', opts.channels, '-f', 's16le', '-i', src]
         .concat(opt).concat(outfile))
       .on('exit', function(code, signal) {
         if (code) {
@@ -269,10 +269,7 @@ module.exports = function(files) {
       async.forEachSeries(Object.keys(formats), function(ext, cb) {
         opts.logger.debug('Start export', { format: ext })
         exportFile(tempFile, opts.output, ext, formats[ext], true, cb)
-      }, function(err) {
-        if (err) {
-          return callback(new Error('Error exporting file'))
-        }
+      }, function(err) {        
         if (opts.autoplay) {
           json.autoplay = opts.autoplay
         }
